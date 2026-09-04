@@ -20,7 +20,15 @@ jobs:
 
       - name: Zip .app artifact
         run: |
-          APP=$(find ./build/Build/Products -name "*.app" -not -path "*/\.*" | head -1)
+          APP=$(find ./build -name "*.app" \
+            -not -name "*.appex" \
+            -not -path "*/\.*" | head -1)
+          if [ -z "$APP" ]; then
+            echo "ERROR: No .app found. Build directory contents:"
+            find ./build -type d | head -20
+            exit 1
+          fi
+          echo "Found: $APP"
           zip -r app.zip "$APP"
         working-directory: .
 
