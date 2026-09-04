@@ -1,0 +1,33 @@
+name: Peekaboo iOS Build
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: 'Peekaboo build ID'
+        required: true
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build for Simulator
+        working-directory: .
+        run: xcodebuild -scheme "Rampage" -sdk iphonesimulator -configuration Debug -derivedDataPath ./build CODE_SIGNING_ALLOWED=NO
+
+      - name: Zip .app artifact
+        run: |
+          APP=$(find ./build/Build/Products -name "*.app" -not -path "*/\.*" | head -1)
+          zip -r app.zip "$APP"
+        working-directory: .
+
+      - name: Upload to Peekaboo
+        run: |
+          curl -X POST ${{ secrets.PEEKABOO_WEBHOOK_URL }} \
+            -H "x-peekaboo-secret: ${{ secrets.PEEKABOO_SECRET }}" \
+            -F "build_id=${{ github.event.inputs.build_id }}" \
+            -F "file=@app.zip"
+        working-directory: .
